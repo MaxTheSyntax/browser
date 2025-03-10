@@ -1,11 +1,8 @@
 #![allow(non_snake_case)]
 
 use windows::{
-    core::PCWSTR,
-    Win32::Foundation::*,
-    Win32::System::LibraryLoader::GetModuleHandleW,
-    Win32::UI::WindowsAndMessaging::*,
-    Win32::Graphics::Gdi::*,
+    core::{w, PCWSTR},
+    Win32::{Foundation::*, Graphics::Gdi::*, System::LibraryLoader::GetModuleHandleW, UI::WindowsAndMessaging::*},
 };
 
 // Window procedure function to handle events
@@ -19,7 +16,9 @@ unsafe extern "system" fn window_proc(
         match msg {
             // Handle window close event
             WM_CLOSE => {
-                let _ = DestroyWindow(hwnd);
+                if MessageBoxW(Some(hwnd), w!("Really quit?"), w!("My application"), MB_OKCANCEL) == IDOK {
+                    let _ = DestroyWindow(hwnd);
+                }
                 LRESULT(0)
             }
             // Handle window destroy event
@@ -33,6 +32,7 @@ unsafe extern "system" fn window_proc(
                 let mut ps = PAINTSTRUCT::default();
                 let hdc = BeginPaint(hwnd, &mut ps);
                 
+                // SYS_COLOR_INDEX(COLOR_WINDOW.0 + 1)
                 FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
                 
                 let _ = EndPaint(hwnd, &ps);
