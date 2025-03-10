@@ -1,8 +1,11 @@
+#![allow(non_snake_case)]
+
 use windows::{
     core::PCWSTR,
     Win32::Foundation::*,
     Win32::System::LibraryLoader::GetModuleHandleW,
     Win32::UI::WindowsAndMessaging::*,
+    Win32::Graphics::Gdi::*,
 };
 
 // Window procedure function to handle events
@@ -24,14 +27,26 @@ unsafe extern "system" fn window_proc(
                 PostQuitMessage(0);
                 LRESULT(0)
             }
+            WM_PAINT => {
+                println!("Window paint event");
+
+                let mut ps = PAINTSTRUCT::default();
+                let hdc = BeginPaint(hwnd, &mut ps);
+                
+                FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
+                
+                let _ = EndPaint(hwnd, &ps);
+                LRESULT(0)
+            }
             WM_SIZE => {
                 let width = LOWORD(lparam.0 as u32);
                 let height = HIWORD(lparam.0 as u32);
-                let status = wparam.0 as u32;
-
-                fn status_code_to_text(status: u32) {
-                    
-                }
+                let status = match wparam.0 as u32 {
+                    SIZE_MAXIMIZED => "Maximized",
+                    SIZE_MINIMIZED => "Minimized",
+                    SIZE_RESTORED => "Restored",
+                    _ => "Unknown",
+                };
 
                 println!("Window resized to {}x{}, and the status is {}", width, height, status);
                 LRESULT(0)
