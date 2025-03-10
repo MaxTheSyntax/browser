@@ -52,7 +52,7 @@ unsafe extern "system" fn window_proc(
                     SIZE_MAXIMIZED => "Maximized",
                     SIZE_MINIMIZED => "Minimized",
                     SIZE_RESTORED => "Restored",
-                    _ => "Unknown",
+                    _ => "Unknown/Other",
                 };
 
                 println!("Window resized to {}x{}, and the status is {}", width, height, status);
