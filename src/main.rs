@@ -1,4 +1,6 @@
 mod win_types;
+mod dialog;
+
 use win_types::{ LOWORD, HIWORD };
 use windows::{
     core::PCWSTR,
@@ -37,6 +39,8 @@ unsafe extern "system" fn window_proc(
 
                 // SYS_COLOR_INDEX(COLOR_WINDOW.0 + 1)
                 FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
+
+                dialog::open_file_dialog();
 
                 let _ = EndPaint(hwnd, &ps);
                 LRESULT(0)
