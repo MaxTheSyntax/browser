@@ -24,6 +24,19 @@ unsafe extern "system" fn window_proc(
                 PostQuitMessage(0);
                 LRESULT(0)
             }
+            WM_SIZE => {
+                fn LOWORD(l: u32) -> u16 {
+                    l as u16
+                }
+                fn HIWORD(l: u32) -> u16 {
+                    (l >> 16) as u16
+                }
+
+                let width = LOWORD(lparam.0 as u32);
+                let height = HIWORD(lparam.0 as u32);
+                println!("Window resized to {}x{}", width, height);
+                LRESULT(0)
+            }
             // Default event handling
             _ => DefWindowProcW(hwnd, msg, wparam, lparam),
         }
