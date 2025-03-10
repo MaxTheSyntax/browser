@@ -25,22 +25,28 @@ unsafe extern "system" fn window_proc(
                 LRESULT(0)
             }
             WM_SIZE => {
-                fn LOWORD(l: u32) -> u16 {
-                    l as u16
-                }
-                fn HIWORD(l: u32) -> u16 {
-                    (l >> 16) as u16
-                }
-
                 let width = LOWORD(lparam.0 as u32);
                 let height = HIWORD(lparam.0 as u32);
-                println!("Window resized to {}x{}", width, height);
+                let status = wparam.0 as u32;
+
+                fn status_code_to_text(status: u32) {
+                    
+                }
+
+                println!("Window resized to {}x{}, and the status is {}", width, height, status);
                 LRESULT(0)
             }
             // Default event handling
             _ => DefWindowProcW(hwnd, msg, wparam, lparam),
         }
     }
+}
+
+fn LOWORD(l: u32) -> u16 {
+    l as u16
+}
+fn HIWORD(l: u32) -> u16 {
+    (l >> 16) as u16
 }
 
 fn main() {
