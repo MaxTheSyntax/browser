@@ -1,8 +1,13 @@
-#![allow(non_snake_case)]
-
+mod win_types;
+use win_types::{ LOWORD, HIWORD };
 use windows::{
-    core::{w, PCWSTR},
-    Win32::{Foundation::*, Graphics::Gdi::*, System::LibraryLoader::GetModuleHandleW, UI::WindowsAndMessaging::*},
+    core::PCWSTR,
+    Win32::{
+        Foundation::*,
+        Graphics::Gdi::*,
+        System::LibraryLoader::GetModuleHandleW,
+        UI::WindowsAndMessaging::*,
+    },
 };
 
 // Window procedure function to handle events
@@ -16,9 +21,7 @@ unsafe extern "system" fn window_proc(
         match msg {
             // Handle window close event
             WM_CLOSE => {
-                if MessageBoxW(Some(hwnd), w!("Really quit?"), w!("My application"), MB_OKCANCEL) == IDOK {
-                    let _ = DestroyWindow(hwnd);
-                }
+                let _ = DestroyWindow(hwnd);
                 LRESULT(0)
             }
             // Handle window destroy event
@@ -31,10 +34,10 @@ unsafe extern "system" fn window_proc(
 
                 let mut ps = PAINTSTRUCT::default();
                 let hdc = BeginPaint(hwnd, &mut ps);
-                
+
                 // SYS_COLOR_INDEX(COLOR_WINDOW.0 + 1)
                 FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
-                
+
                 let _ = EndPaint(hwnd, &ps);
                 LRESULT(0)
             }
@@ -55,13 +58,6 @@ unsafe extern "system" fn window_proc(
             _ => DefWindowProcW(hwnd, msg, wparam, lparam),
         }
     }
-}
-
-fn LOWORD(l: u32) -> u16 {
-    l as u16
-}
-fn HIWORD(l: u32) -> u16 {
-    (l >> 16) as u16
 }
 
 fn main() {
