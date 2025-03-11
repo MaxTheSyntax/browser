@@ -40,8 +40,6 @@ unsafe extern "system" fn window_proc(
                 // SYS_COLOR_INDEX(COLOR_WINDOW.0 + 1)
                 FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
 
-                dialog::open_file_dialog();
-
                 let _ = EndPaint(hwnd, &ps);
                 LRESULT(0)
             }
@@ -54,6 +52,10 @@ unsafe extern "system" fn window_proc(
                     SIZE_RESTORED => "Restored",
                     _ => "Unknown/Other",
                 };
+
+                if status == "Maximized" {
+                    dialog::open_file_dialog();
+                }
 
                 println!("Window resized to {}x{}, and the status is {}", width, height, status);
                 LRESULT(0)
