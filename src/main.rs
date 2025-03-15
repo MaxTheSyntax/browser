@@ -54,7 +54,10 @@ unsafe extern "system" fn window_proc(
                 };
 
                 if status == "Maximized" {
-                    dialog::open_file_dialog();
+                    match dialog::open_file_dialog() {
+                        Ok(_) => println!("File dialog executed successfully"),
+                        Err(e) => println!("Failed to open file dialog: {}", e),
+                    }
                 }
 
                 println!("Window resized to {}x{}, and the status is {}", width, height, status);

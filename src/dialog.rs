@@ -1,5 +1,6 @@
 use windows::{ core::{ w, PWSTR }, Win32::{ System::Com::*, UI::Shell::*, UI::Shell::Common::* } };
 use windows::Win32::UI::WindowsAndMessaging::{ MessageBoxW, MB_OK };
+use crate::win_types::safe_mem_release;
 
 // Convert a null-terminated UTF-16 string to a Rust String
 fn convert_nt_utf16_string_to_string(nt_string: PWSTR) -> String {
@@ -13,15 +14,11 @@ fn convert_nt_utf16_string_to_string(nt_string: PWSTR) -> String {
         let slice = std::slice::from_raw_parts(nt_string.0, length as usize);
         let string = String::from_utf16_lossy(slice);
 
-        // WARNING: Don't uncomment this line, it will cause a double free error (It's freed later on)
-        // Free the memory allocated by CoTaskMemAlloc
-        // CoTaskMemFree(Some(nt_string.0 as *mut _));
-
         return string;
     }
 }
 
-pub fn open_file_dialog() {
+pub fn open_file_dialog() -> Result<(), String> {
     unsafe {
         println!("Opening file dialog");
 
@@ -31,12 +28,14 @@ pub fn open_file_dialog() {
         //     .ok()
         //     .expect("Failed to initialize COM library");
 
-        // Create the file open dialog
-        let file_dialog: IFileOpenDialog = CoCreateInstance(
-            &FileOpenDialog,
-            None,
-            CLSCTX_INPROC_SERVER
-        ).expect("Failed to create FileOpenDialog");
+        let file_dialog: IFileOpenDialog = match
+            CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER)
+        {
+            Ok(dialog) => dialog,
+            Err(e) => {
+                return Err(format!("Failed to create FileOpenDialog: {:?}", e));
+            }
+        };
 
         // Set the dialog options
         let filters = [
@@ -54,44 +53,42 @@ pub fn open_file_dialog() {
 
         // Show the file open dialog
         if let Err(e) = file_dialog.Show(None) {
-            println!("Failed to select file: {:?}", e);
-            return;
+            return Err(format!("Failed to select file: {:?}", e));
         }
 
         // Get the selected file
         let selected_file = match file_dialog.GetResult() {
             Ok(file) => file,
             Err(e) => {
-                println!("Failed to get selected file: {:?}", e);
-                return;
+                return Err(format!("Failed to get selected file: {:?}", e));
             }
         };
 
         // Get file path
-        let file_path = match selected_file.GetDisplayName(SIGDN_FILESYSPATH) {
+        let mut file_path = match selected_file.GetDisplayName(SIGDN_FILESYSPATH) {
             Ok(path) => path,
             Err(e) => {
-                println!("Failed to get file path: {:?}", e);
-                return;
+                return Err(format!("Failed to get file path: {:?}", e));
             }
         };
 
-        /*  The `.clone()` call is needed here to avoid moving file_path
-            because convert_nt_utf16_string_to_string takes ownership of the pointer.
-            Cloning preserves the original 'file_path' pointer for later use in MessageBoxW. */
-        let file_path_string = convert_nt_utf16_string_to_string(file_path.clone());
+        let file_path_string = convert_nt_utf16_string_to_string(file_path);
         println!("Selected file: {}", file_path_string);
 
         // Show MessageBox
-        // Notice that `file_path_str` isn't being used here, as it's a Rust String and MessageBoxW expects a wide string
-        // `w!` is a macro that converts a string literal to a wide string, making it compatible with Windows's API
-        MessageBoxW(None, file_path, w!("file"), MB_OK);
-
-        CoTaskMemFree(Some(file_path.0 as *mut _));
-        // COM objects are automatically released when they go out of scope, so in this case selected_file, file_dialog and other variables are released automatically.
-        // The Rust implementation of the Windows API takes care of memory managment (I think) | OLD COMMENT: // `file_path` is of type `PWSTR` and is not a COM object, so it needs to be freed manually.
+        // Convert file_path_string to a wide string using encode_utf16 and pass it to MessageBoxW
+        let file_path_wide: Vec<u16> = file_path_string
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        MessageBoxW(None, PWSTR(file_path_wide.as_ptr() as *mut _), w!("file"), MB_OK);
+        // COM objects are automatically released when they go out of scope.
+        // Instead of making file_path mutable, bind the inner pointer to a mutable variable and release it.
+        safe_mem_release(&mut file_path.0);
 
         // Check the commented `CoInitializeEx` for info on why this is commented out
         // CoUninitialize();
+
+        return Ok(());
     }
 }
